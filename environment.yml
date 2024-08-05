@@ -1,0 +1,16 @@
+name: spiketoexcite
+dependencies:
+  - python=3.8
+  - pytorch::pytorch
+  - pytorch::torchvision
+  - nvidia::pytorch-cuda=11.8
+  - seaborn
+  - pandas
+  - jupyter
+  - nb_conda_kernels
+  - pip:
+      - h5py
+      - scikit-learn
+      - devtorch
+      - brainbox==0.0.8
+      - --editable .
