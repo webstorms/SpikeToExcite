@@ -16,7 +16,10 @@ def get_model_outputs(clip, control_model, seizure_model, seed=42, v=0):
         c_output, c_spikes, c_mem, c_ex_rec_current, c_in_rec_current, c_input_current = control_model(clip.unsqueeze(0).cuda(), "val")
         s_output, s_spikes, s_mem, s_ex_rec_current, s_in_rec_current, s_input_current = seizure_model(clip.unsqueeze(0).cuda(), "val")
 
-    return c_spikes[0].cpu(), s_spikes[0].cpu()
+    c_lfp = c_ex_rec_current[0].cpu().abs()[90:].mean(0) + c_in_rec_current[0].cpu().abs()[90:].mean(0)
+    s_lfp = s_ex_rec_current[0].cpu().abs()[90:].mean(0) + s_in_rec_current[0].cpu().abs()[90:].mean(0)
+
+    return c_spikes[0].cpu(), s_spikes[0].cpu(), c_lfp, s_lfp
 
 
 def spike_tensor_to_points(spikes):

@@ -1,9 +1,12 @@
 import random
+import warnings; warnings.simplefilter('ignore')
 
 import torch
 import torch.nn.functional as F
+import pandas as pd
 import numpy as np
 import matplotlib
+from scipy.stats import mannwhitneyu
 
 from src import dataset, models
 from src.analysis import util
@@ -38,9 +41,29 @@ class ExampleClipResponses:
         return clip
 
     @staticmethod
+    def get_power_df(control_power, seizure_power):
+        data_list = []
+
+        for i in range(control_power.shape[0]):
+            for j in range(control_power.shape[1]):
+                data_list.append({"model": "Control", "i": i, "power": np.max([control_power[i][j], 0])})
+                data_list.append({"model": "Seizure", "i": i, "power": np.max([seizure_power[i][j], 0])})
+
+        power_df = pd.DataFrame(data_list)
+
+        for i in range(7):
+            v1 = power_df[power_df["i"] == i][power_df["model"] == "Control"]["power"].values
+            v2 = power_df[power_df["i"] == i][power_df["model"] == "Seizure"]["power"].values
+            _, p = mannwhitneyu(v1, v2, alternative="two-sided")
+            print(f"band {i} p-value={p}")
+
+        return power_df
+
+    @staticmethod
     def get_specgram_data(response, NFFT=12, Fs=120, noverlap=4):
         power, freqs, bins, _ = matplotlib.pyplot.specgram(response, NFFT=NFFT, Fs=Fs, noverlap=noverlap)
         power = np.log10(power)
+        power[power < -10000000] = -10  # to replace -infs
 
         return power, freqs, bins
 
@@ -82,21 +105,21 @@ class InhibDecreaseFRCalculator:
             seizure_example = ExampleClipResponses(root, model_id, data_root=data_root, duration_ms=5000, decrease_gabba=decrease_gabba)
 
             # Pokemon
-            _, control_model_response, seizure_model_response = seizure_example.get_pokemon_clip_responses(i=-31, j=20, seed=42)
+            _, control_model_response, seizure_model_response, _, _ = seizure_example.get_pokemon_clip_responses(i=-31, j=20, seed=42)
             self.pokemon_fr_list.append(120 * seizure_model_response.mean(0).max().item())
 
             # All the lights
-            _, control_model_response, seizure_model_response = seizure_example.get_all_the_lights_clip_responses(i=-31, j=20, seed=42)
+            _, control_model_response, seizure_model_response, _, _ = seizure_example.get_all_the_lights_clip_responses(i=-31, j=20, seed=42)
             self.all_the_lights_fr_list.append(120 * seizure_model_response.mean(0).max().item())
 
             # Citroen
-            _, control_model_response, seizure_model_response = seizure_example.get_citroen_clip_responses(i=-31, j=20, seed=42)
+            _, control_model_response, seizure_model_response, _, _ = seizure_example.get_citroen_clip_responses(i=-31, j=20, seed=42)
             self.citroen_fr_list.append(120 * seizure_model_response.mean(0).max().item())
 
             # Citroen
-            _, control_model_response, seizure_model_response = seizure_example.get_incredibles_clip_responses(i=-31, j=20, seed=42)
+            _, control_model_response, seizure_model_response, _, _ = seizure_example.get_incredibles_clip_responses(i=-31, j=20, seed=42)
             self.incredibles_fr_list.append(120 * seizure_model_response.mean(0).max().item())
 
             # Take my breath
-            _, control_model_response, seizure_model_response = seizure_example.get_take_my_breath_clip_responses(i=20, j=20, seed=42)
+            _, control_model_response, seizure_model_response, _, _ = seizure_example.get_take_my_breath_clip_responses(i=20, j=20, seed=42)
             self.take_my_breath_fr_list.append(120 * seizure_model_response.mean(0).max().item())
